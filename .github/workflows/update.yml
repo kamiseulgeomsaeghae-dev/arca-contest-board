@@ -1,0 +1,43 @@
+name: Update Contest Board
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: Python 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 라이브러리 설치
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+
+      - name: 대회 현황판 갱신
+        env:
+          VERTEX_JSON: ${{ secrets.VERTEX_JSON }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: python main.py
+
+      - name: 이미지 저장
+        run: |
+          mkdir -p docs
+          cp output/board.png docs/board.png
+
+      - name: GitHub에 올리기
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/board.png
+          git commit -m "대회 현황판 갱신" || exit 0
+          git push
